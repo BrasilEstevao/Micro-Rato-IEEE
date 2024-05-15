@@ -15,16 +15,19 @@ QTRSensors qtr;
 const uint8_t SensorCount = 5;
 uint16_t sensorValues[SensorCount];
 
-float Kp = 0.13;
-float Ki = 0.00009;
-float Kd = 0.055;
+float Kp = 0.05;
+//float Ki = 0.00009;
+float Ki = 0;
+//float Kd = 0.055;
+float Kd = 0;
 int P;
 int I = 0;
 int D;
 int lastError = 0;
 
 const uint8_t maxspeed = 100;
-const uint8_t basespeed = 60;
+const uint8_t rightBaseSpeed = 57;
+const uint8_t leftBaseSpeed = 60;
 
 Motor right_motor(IN_1A, IN_2A, PWM_A, offsetA, 18);
 Motor left_motor(IN_1B, IN_2B, PWM_B, offsetB, 18);
@@ -40,7 +43,7 @@ qtr.setEmitterPin(IR);
 
 
 //calibration
-for (uint16_t i = 0; i < 300; i++)
+for (uint16_t i = 0; i < 100; i++)
   {
     qtr.calibrate();
   }
@@ -67,7 +70,11 @@ for (uint8_t i = 0; i < SensorCount; i++)
 void PID_control() 
 {
   uint16_t position = qtr.readLineBlack(sensorValues);
-  int error = 2000 - position;
+  float error = 2000 - position;
+  //float error = (-1.5 * sensorValues[0] -1.2 * sensorValues[1] + 1 * sensorValues[3] + 1 * sensorValues[4]);
+
+  //Serial.print("Sum: ");
+  //Serial.println(sum);
 
   P = error;
   I += error;
@@ -75,8 +82,8 @@ void PID_control()
   lastError = error;
   int motorspeed = P * Kp + I * Ki + D * Kd;
 
-  int left_motorspeed = basespeed + motorspeed;
-  int right_motorspeed = basespeed - motorspeed;
+  int left_motorspeed = leftBaseSpeed + motorspeed;
+  int right_motorspeed = rightBaseSpeed - motorspeed;
 
   // Limite a velocidade dos motores
   if (right_motorspeed > maxspeed) 
@@ -102,13 +109,23 @@ void PID_control()
 }
 
 
+void robot_forward(){
+
+  right_motor.drive(rightBaseSpeed);
+  left_motor.drive(leftBaseSpeed); 
+
+}
+
+
 void loop()
 {
 
   PID_control();
+  //robot_forward();
   // Imprimir os valores dos sensores para depuração
 
   uint16_t position = qtr.readLineBlack(sensorValues);
+  
   for (uint8_t i = 0; i < SensorCount; i++) 
   {
     Serial.print(sensorValues[i]);
