@@ -15,11 +15,11 @@ QTRSensors qtr;
 const uint8_t SensorCount = 5;
 uint16_t sensorValues[SensorCount];
 
-float Kp = 0.12;
-float Ki = 0;
+float Kp = 0.13;
+float Ki = 0.00009;
 float Kd = 0.055;
 int P;
-int I;
+int I = 0;
 int D;
 int lastError = 0;
 
@@ -28,25 +28,6 @@ const uint8_t basespeed = 60;
 
 Motor right_motor(IN_1A, IN_2A, PWM_A, offsetA, 18);
 Motor left_motor(IN_1B, IN_2B, PWM_B, offsetB, 18);
-
-/*CONTADORES DO ENCODER
-
-int right_speed = 0;
-int left_speed = 0;
-
-void incrementACounter()
-{
-  // Incrementa contador do motor A
-  if (speedA < 0) pulseCounterA--;
-  else pulseCounterA++;
-}
-
-void incrementBCounter() ]
-{
-  // Incrementa contador do motor B
-  if (speedB < 0) pulseCounterB--;
-  else pulseCounterB++;
-} */
 
 void setup()
 {
@@ -57,8 +38,6 @@ qtr.setTypeAnalog();
 qtr.setSensorPins((const uint8_t[]){S1, S2, S3, S4, S5}, SensorCount);
 qtr.setEmitterPin(IR);
 
-/*pinMode(ENCODER_A_PIN, INPUT);
-attachInterrupt(ENCODER_A_PIN, incrementACounter, FALLING); encoder stuff*/
 
 //calibration
 for (uint16_t i = 0; i < 300; i++)
@@ -88,7 +67,7 @@ for (uint8_t i = 0; i < SensorCount; i++)
 void PID_control() 
 {
   uint16_t position = qtr.readLineBlack(sensorValues);
-  int error = 1500 - position;
+  int error = 2000 - position;
 
   P = error;
   I += error;
@@ -125,8 +104,8 @@ void PID_control()
 
 void loop()
 {
+
   PID_control();
-  
   // Imprimir os valores dos sensores para depuração
 
   uint16_t position = qtr.readLineBlack(sensorValues);
