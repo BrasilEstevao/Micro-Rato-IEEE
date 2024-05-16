@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "pins.h"
+#include "config.h"
 #include "SparkFun_TB6612.h"
 #include <QTRSensors.h>
 
