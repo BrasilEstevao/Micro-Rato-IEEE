@@ -2,6 +2,7 @@
 #include "config.h"
 #include "SparkFun_TB6612.h"
 #include <QTRSensors.h>
+#include "ezButton.h"
 
 volatile long right_pulseCounter = 0;
 volatile long left_pulseCounter = 0;
@@ -43,6 +44,7 @@ void robot_forward();
 void setRobotVW(float V, float W);
 void readSensors();
 void calcCrosses();
+void decideNextInstruction();
 void statesEvolution();
 void statesExits();
 
@@ -51,10 +53,17 @@ void statesExits();
 int motorspeed = 0;
 int crosses = 0;
 char decisionFlag = 'N';
+int lastLeftSensors = 0;
+int lastRightSensors = 0;
+int nowSensors = 0;
+
+ezButton button(13);
 
 void setup(){
 
-setState(99);
+button.setDebounceTime(10);
+
+setState(100);
 //setState(start);
 
 
@@ -94,6 +103,10 @@ for (uint8_t i = 0; i < SensorCount; i++)
 void loop()
 {
 
+  button.loop();
+
+  if(button.isPressed()) setState(start);
+
   statesEvolution();
   statesExits();
 
@@ -111,17 +124,32 @@ void loop()
 
   //readSensors();
   
-  for (uint8_t i = 0; i < SensorCount; i++) 
-  {
-    Serial.print(sensorValues[i]);
-    Serial.print('\t');
-  }
+  // for (uint8_t i = 0; i < SensorCount; i++) 
+  // {
+  //   Serial.print(sensorValues[i]);
+  //   Serial.print('\t');
+  // }
   //Serial.println();
-  Serial.print(position);
-  Serial.print('\t');
+  // Serial.print(position);
+  // Serial.print('\t');
+  Serial.print("Now Sensors: ");
+  Serial.print(nowSensors);
+  
+  Serial.print(" Last Left Sensors: ");
+  Serial.print(lastLeftSensors);
 
-  Serial.print("Crosses: ");
-  Serial.println(crosses);
+  Serial.print(" Last Right Sensors: ");
+  Serial.print(lastRightSensors);
+
+  Serial.print(" Decision Flag: ");
+  Serial.print(decisionFlag);
+
+  Serial.print(" State: ");
+  Serial.println(state);
+  
+
+  //Serial.print("Crosses: ");
+  //Serial.println(crosses);
 
 }
 
@@ -194,9 +222,26 @@ void calcCrosses(){
   //sensorValues[0] = map(sensorValues[0], 0, 4, 0, 1000);
 
   //int sum = sensorValues[0] + sensorValues[1];
-  if(sensorValues[0] + sensorValues[1] > 1500) crosses++, decisionFlag = 'L';
-  else if(sensorValues[2] + sensorValues[3] > 1500) crosses++, decisionFlag = 'R';
-  else crosses = 0, decisionFlag = 'N';
+  if(sensorValues[0] + sensorValues[1] > 1500) crosses++, lastRightSensors = sensorValues[0] + sensorValues[1];
+  else if(sensorValues[2] + sensorValues[3] > 1500) crosses++, lastLeftSensors = sensorValues[2] + sensorValues[3];
+  //else if(sensorValues[0] + sensorValues[1] + sensorValues[2] + sensorValues[3] > 3000) lastRightSensors = sensorValues[0] + sensorValues[1], lastLeftSensors = sensorValues[2] + sensorValues[3];
+  else crosses = 0, lastLeftSensors = 0, lastRightSensors = 0;
+
+}
+
+void decideNextInstruction(){
+  nowSensors = sensorValues[1] + sensorValues[2];
+
+  //Casos sem linha depois do entrocamento
+  if(nowSensors < 800 && lastLeftSensors < 1500 && lastRightSensors > 1500) decisionFlag = 'R'; //Curva simples pra direita
+  else if(nowSensors < 800 && lastLeftSensors > 1500 && lastRightSensors < 1500) decisionFlag = 'L'; //Curva simples pra esquerda
+  else if (nowSensors < 800 && lastLeftSensors > 1500 && lastRightSensors > 1500) decisionFlag = 'R'; //Entrocamento, direita é prioridade
+
+  //Casos com linha depois do entrocamento
+  else if(nowSensors > 800 && lastLeftSensors > 1500 && lastRightSensors < 1500) decisionFlag = 'F'; //Entrocamento com esquerda, seguir reto
+  else if(nowSensors > 800 && lastLeftSensors < 1500 && lastRightSensors > 1500) decisionFlag = 'R'; //Entrocamento com direita, virar a direita
+  else if(nowSensors > 800 && lastLeftSensors > 1500 && lastRightSensors > 1500) decisionFlag = 'R'; //Cruzamento, virar a direita
+
 
 }
 
@@ -206,20 +251,45 @@ void statesEvolution(){
   if(state == start && tis > 2000){
     setState(1);
 
-  }else if(state == front && crosses > 0){
-    setState(decision);
+  }else if(state == follow && crosses > 0){
+    setState(buffer);
 
-  }else if(state == decision && decisionFlag == 'R'){
-    setState(turnRight);
+  }else if(state == buffer && tis > 50){
+    // setState(decision);
+    setState(decision);
 
   }else if(state == decision && decisionFlag == 'L'){
     setState(turnLeft);
+    //setState(99);
+    lastLeftSensors = 0;
+    lastRightSensors = 0;
 
+  }else if(state == decision && decisionFlag == 'R'){
+    setState(turnRight);
+    //setState(99);
+    lastLeftSensors = 0;
+    lastRightSensors = 0;
+
+  }else if(state == decision && decisionFlag == 'F'){
+    setState(follow);
+    //setState(99);
+    lastLeftSensors = 0;
+    lastRightSensors = 0;
+    
+  }else if(state == decision && decisionFlag == 'T'){
+    setState(turnBack);
+    //setState(99);
+    lastLeftSensors = 0;
+    lastRightSensors = 0;
+    
+  }else if(state == turnBack && tis > 500){
+    setState(follow);
+    
   }else if(state == turnRight && tis > 200){
-    setState(front);
-
+    setState(follow);
+    
   }else if(state == turnLeft && tis > 200){
-    setState(front);
+    setState(follow);
     
   }else if(state == 99){
     
@@ -232,20 +302,26 @@ void statesExits(){
   if(state == start){
     setRobotVW(0, 0);
   
-  }else if(state == front){
+  }else if(state == follow){
     followLine();
+
+  }else if(state == buffer){
+    setRobotVW(2, 0);
 
   }else if(state == decision){
-    setRobotVW(0, 0);
-
-  }else if(state == turnRight){
-    setRobotVW(0, 5);
+    decideNextInstruction();
 
   }else if(state == turnLeft){
-    setRobotVW(0, -5);
+    setRobotVW(0, 2);
+
+  }else if(state == turnRight){
+    setRobotVW(0, -2);
+
+  }else if(state == turnBack){
+    setRobotVW(0, 5);
 
   }else if(state == 99){
-    followLine();
+    setRobotVW(0, 0);
 
   }
 

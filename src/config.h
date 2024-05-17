@@ -24,10 +24,11 @@
 
 typedef enum{
     start,     //0
-    front,     //1
-    decision,  //2
-    turnRight, //3
-    turnLeft,  //4
-    turnBack   //5
+    follow,     //1
+    turnRight, //2
+    turnLeft,  //3
+    turnBack,  //4
+    buffer,    //5
+    decision   //6
 
 }estados;
