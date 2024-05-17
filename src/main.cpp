@@ -7,9 +7,10 @@ volatile long right_pulseCounter = 0;
 volatile long left_pulseCounter = 0;
 volatile unsigned long timeOld;
 const unsigned int pulsesPerRotation = 20;
-const int offsetA = 1;
-const int offsetB = 1;
+const int offsetA = 1, offsetB = 1;
 
+byte state;
+uint32_t tis, tes;
 
 QTRSensors qtr;
 const uint8_t SensorCount = 5;
@@ -32,8 +33,15 @@ const uint8_t leftBaseSpeed = 60;
 Motor right_motor(IN_1A, IN_2A, PWM_A, offsetA, 18);
 Motor left_motor(IN_1B, IN_2B, PWM_B, offsetB, 18);
 
+void PID_control();
+void setState(byte new_state);
+void robot_forward();
+void setRobotVW(float V, float W);
+
 void setup()
 {
+
+setState(0);
 
 Serial.begin(9600);
 // configure the sensors
@@ -66,6 +74,74 @@ for (uint8_t i = 0; i < SensorCount; i++)
   delay(1000);
 
 }
+
+void loop()
+{
+
+  //States evolution
+  tis = millis() - tes; //resetar tis
+
+  if(state == 0 && tis > 4000){
+    setState(1);
+
+  }else if(state == 1 && tis > 4000){
+    setState(2);
+
+  }else if(state == 2 && tis > 4000){
+    setState(0);
+  }
+
+
+
+
+
+  //States actions
+  if(state == 0){
+    setRobotVW(0, 0);
+  
+  }else if(state == 1){
+    setRobotVW(0, 5);
+
+  }else if(state == 2){
+    setRobotVW(0, -5);
+
+  }
+
+
+  //PID_control();
+  //robot_forward();
+  // Imprimir os valores dos sensores para depuração
+
+  uint16_t position = qtr.readLineBlack(sensorValues);
+  
+  // for (uint8_t i = 0; i < SensorCount; i++) 
+  // {
+  //   Serial.print(sensorValues[i]);
+  //   Serial.print('\t');
+  // }
+  //Serial.println(position);
+
+  Serial.print(sensorValues[0]);
+  Serial.print('\t');
+  Serial.print(sensorValues[1]);
+  Serial.print('\t');
+  Serial.print(sensorValues[2]);
+  Serial.print('\t');
+  Serial.print(sensorValues[3]);
+  Serial.print('\t');
+  Serial.print(sensorValues[4]);
+  Serial.print('\t');
+
+
+  Serial.print("State: ");
+  Serial.println(state);
+
+
+}
+
+
+//===================================
+//Funções
 
 void PID_control() 
 {
@@ -108,6 +184,11 @@ void PID_control()
   left_motor.drive(left_motorspeed);
 }
 
+void setState(byte new_state){
+  tes = millis();
+  tis = 0;
+  state = new_state;
+}
 
 void robot_forward(){
 
@@ -116,20 +197,12 @@ void robot_forward(){
 
 }
 
+void setRobotVW(float V, float W){
+  int leftDuty = map(V - W, 0, 10, 0, 255);
+  int rightDuty = map(V + W, 0, 10, 0, 255);
 
-void loop()
-{
+  left_motor.drive(leftDuty);
+  right_motor.drive(rightDuty);
 
-  PID_control();
-  //robot_forward();
-  // Imprimir os valores dos sensores para depuração
-
-  uint16_t position = qtr.readLineBlack(sensorValues);
-  
-  for (uint8_t i = 0; i < SensorCount; i++) 
-  {
-    Serial.print(sensorValues[i]);
-    Serial.print('\t');
-  }
-  Serial.println(position);
 }
+

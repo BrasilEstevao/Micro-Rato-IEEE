@@ -21,3 +21,11 @@
 
 // Encoders
 #define ENCODER_A_PIN 12
+
+typedef enum{
+    followLine,  //0
+    turnRight,   //1
+    turnLeft,    //2
+    turnBack     //3
+
+}estados;
