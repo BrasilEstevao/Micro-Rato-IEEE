@@ -23,9 +23,11 @@
 #define ENCODER_A_PIN 12
 
 typedef enum{
-    front,  //0
-    turnRight,   //1
-    turnLeft,    //2
-    turnBack     //3
+    start,     //0
+    front,     //1
+    decision,  //2
+    turnRight, //3
+    turnLeft,  //4
+    turnBack   //5
 
 }estados;

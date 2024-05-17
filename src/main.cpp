@@ -17,8 +17,8 @@ const uint8_t SensorCount = 4;
 uint16_t sensorValues[SensorCount];
 
 float Kp = 0.05;
-//float Ki = 0.00009;
-float Ki = 0;
+float Ki = 0.0002;
+//float Ki = 0;
 //float Kd = 0.055;
 float Kd = 0;
 int P;
@@ -50,11 +50,14 @@ void statesExits();
 
 int motorspeed = 0;
 int crosses = 0;
+char decisionFlag = 'N';
 
 void setup(){
 
-//setState(99);
-setState(0);
+setState(99);
+//setState(start);
+
+
 Serial.begin(9600);
 // configure the sensors
 //qtr.setTypeRC();
@@ -191,39 +194,54 @@ void calcCrosses(){
   //sensorValues[0] = map(sensorValues[0], 0, 4, 0, 1000);
 
   //int sum = sensorValues[0] + sensorValues[1];
-  if(sensorValues[0] + sensorValues[1] > 1500) crosses++;
-  else if(sensorValues[2] + sensorValues[3] > 1500) crosses++;
-  else crosses = 0;
+  if(sensorValues[0] + sensorValues[1] > 1500) crosses++, decisionFlag = 'L';
+  else if(sensorValues[2] + sensorValues[3] > 1500) crosses++, decisionFlag = 'R';
+  else crosses = 0, decisionFlag = 'N';
 
 }
 
 void statesEvolution(){
   tis = millis() - tes; //resetar tis
 
-  if(state == 0 && tis > 2000){
+  if(state == start && tis > 2000){
     setState(1);
 
-  }else if(state == 1 && crosses > 0){
-    setState(0);
+  }else if(state == front && crosses > 0){
+    setState(decision);
 
-  }else if(state == 2 && tis > 2000){
-    setState(0);
+  }else if(state == decision && decisionFlag == 'R'){
+    setState(turnRight);
 
+  }else if(state == decision && decisionFlag == 'L'){
+    setState(turnLeft);
+
+  }else if(state == turnRight && tis > 200){
+    setState(front);
+
+  }else if(state == turnLeft && tis > 200){
+    setState(front);
+    
   }else if(state == 99){
-
-
+    
+    
   }
 
 }
 
 void statesExits(){
-  if(state == 0){
+  if(state == start){
     setRobotVW(0, 0);
   
-  }else if(state == 1){
+  }else if(state == front){
     followLine();
 
-  }else if(state == 2){
+  }else if(state == decision){
+    setRobotVW(0, 0);
+
+  }else if(state == turnRight){
+    setRobotVW(0, 5);
+
+  }else if(state == turnLeft){
     setRobotVW(0, -5);
 
   }else if(state == 99){
