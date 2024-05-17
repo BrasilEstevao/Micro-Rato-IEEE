@@ -26,17 +26,27 @@ int I = 0;
 int D;
 int lastError = 0;
 
-const uint8_t maxspeed = 100;
-const uint8_t rightBaseSpeed = 57;
-const uint8_t leftBaseSpeed = 60;
+
+const uint8_t maxspeed = 255;
+const uint8_t rightBaseSpeed = 97;
+const uint8_t leftBaseSpeed = 100;
 
 Motor right_motor(IN_1A, IN_2A, PWM_A, offsetA, 18);
 Motor left_motor(IN_1B, IN_2B, PWM_B, offsetB, 18);
 
-void PID_control();
+//=========================================
+//Function Headers
+
+void followLine();
 void setState(byte new_state);
 void robot_forward();
 void setRobotVW(float V, float W);
+void statesEvolution();
+void statesExits();
+//=========================================
+
+int motorspeed = 0;
+
 
 void setup()
 {
@@ -51,7 +61,7 @@ qtr.setEmitterPin(IR);
 
 
 //calibration
-for (uint16_t i = 0; i < 100; i++)
+for (uint16_t i = 0; i < 600; i++)
   {
     qtr.calibrate();
   }
@@ -70,42 +80,16 @@ for (uint8_t i = 0; i < SensorCount; i++)
     Serial.print(' ');
   }
   Serial.println();
-  Serial.println();
-  delay(1000);
 
 }
 
 void loop()
 {
 
-  //States evolution
-  tis = millis() - tes; //resetar tis
+  //statesEvolution();
+  //statesExits();
 
-  if(state == 0 && tis > 4000){
-    setState(1);
-
-  }else if(state == 1 && tis > 4000){
-    setState(2);
-
-  }else if(state == 2 && tis > 4000){
-    setState(0);
-  }
-
-
-
-
-
-  //States actions
-  if(state == 0){
-    setRobotVW(0, 0);
-  
-  }else if(state == 1){
-    setRobotVW(0, 5);
-
-  }else if(state == 2){
-    setRobotVW(0, -5);
-
-  }
+  //followLine();
 
 
   //PID_control();
@@ -119,6 +103,7 @@ void loop()
   //   Serial.print(sensorValues[i]);
   //   Serial.print('\t');
   // }
+  // Serial.println();
   //Serial.println(position);
 
   Serial.print(sensorValues[0]);
@@ -130,11 +115,14 @@ void loop()
   Serial.print(sensorValues[3]);
   Serial.print('\t');
   Serial.print(sensorValues[4]);
-  Serial.print('\t');
+  Serial.println('\t');
 
 
-  Serial.print("State: ");
-  Serial.println(state);
+  //Serial.print("State: ");
+  //Serial.println(state);
+
+  // Serial.print("Motorspeed do pid: ");
+  // Serial.println(motorspeed);
 
 
 }
@@ -143,10 +131,9 @@ void loop()
 //===================================
 //Funções
 
-void PID_control() 
-{
+void followLine(){
   uint16_t position = qtr.readLineBlack(sensorValues);
-  float error = 2000 - position;
+  float error = 1400 - position;
   //float error = (-1.5 * sensorValues[0] -1.2 * sensorValues[1] + 1 * sensorValues[3] + 1 * sensorValues[4]);
 
   //Serial.print("Sum: ");
@@ -156,29 +143,13 @@ void PID_control()
   I += error;
   D = error - lastError;
   lastError = error;
-  int motorspeed = P * Kp + I * Ki + D * Kd;
+  motorspeed = P * Kp + I * Ki + D * Kd;
 
   int left_motorspeed = leftBaseSpeed + motorspeed;
   int right_motorspeed = rightBaseSpeed - motorspeed;
 
-  // Limite a velocidade dos motores
-  if (right_motorspeed > maxspeed) 
-  {
-    right_motorspeed = maxspeed;
-  }
-  if (right_motorspeed < 0) 
-  {
-    right_motorspeed = 0;
-  }
-  if (left_motorspeed > maxspeed) 
-  {
-    left_motorspeed = maxspeed;
-  }
-  if (left_motorspeed < 0) 
-  {
-    left_motorspeed = 0;
-  }
- 
+  constrain(right_motorspeed, 0, maxspeed);
+  constrain(left_motorspeed, 0, maxspeed); 
 
   right_motor.drive(right_motorspeed);
   left_motor.drive(left_motorspeed);
@@ -206,3 +177,38 @@ void setRobotVW(float V, float W){
 
 }
 
+void calcCrosses(){
+  int sum = sensorValues[0] + sensorValues[1] + sensorValues[2] + sensorValues[3] + sensorValues[4];
+
+  //if(sum > )
+
+}
+
+void statesEvolution(){
+  tis = millis() - tes; //resetar tis
+
+  if(state == 0 && tis > 4000){
+    setState(1);
+
+  }else if(state == 1 && tis > 4000){
+    setState(2);
+
+  }else if(state == 2 && tis > 4000){
+    setState(0);
+  }
+
+}
+
+void statesExits(){
+  if(state == 0){
+    setRobotVW(0, 0);
+  
+  }else if(state == 1){
+    setRobotVW(0, 5);
+
+  }else if(state == 2){
+    setRobotVW(0, -5);
+
+  }
+
+}
