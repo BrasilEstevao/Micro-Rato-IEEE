@@ -13,7 +13,7 @@ byte state;
 uint32_t tis, tes;
 
 QTRSensors qtr;
-const uint8_t SensorCount = 5;
+const uint8_t SensorCount = 4;
 uint16_t sensorValues[SensorCount];
 
 float Kp = 0.05;
@@ -28,8 +28,8 @@ int lastError = 0;
 
 
 const uint8_t maxspeed = 255;
-const uint8_t rightBaseSpeed = 97;
-const uint8_t leftBaseSpeed = 100;
+const uint8_t rightBaseSpeed = 57;
+const uint8_t leftBaseSpeed = 60;
 
 Motor right_motor(IN_1A, IN_2A, PWM_A, offsetA, 18);
 Motor left_motor(IN_1B, IN_2B, PWM_B, offsetB, 18);
@@ -41,27 +41,30 @@ void followLine();
 void setState(byte new_state);
 void robot_forward();
 void setRobotVW(float V, float W);
+void readSensors();
+void calcCrosses();
 void statesEvolution();
 void statesExits();
+
 //=========================================
 
 int motorspeed = 0;
+int crosses = 0;
 
+void setup(){
 
-void setup()
-{
-
+//setState(99);
 setState(0);
-
 Serial.begin(9600);
 // configure the sensors
+//qtr.setTypeRC();
 qtr.setTypeAnalog();
-qtr.setSensorPins((const uint8_t[]){S1, S2, S3, S4, S5}, SensorCount);
+qtr.setSensorPins((const uint8_t[]){S1, S2, S3, S4}, SensorCount);
 qtr.setEmitterPin(IR);
 
 
 //calibration
-for (uint16_t i = 0; i < 600; i++)
+for (uint16_t i = 0; i < 300; i++)
   {
     qtr.calibrate();
   }
@@ -81,15 +84,19 @@ for (uint8_t i = 0; i < SensorCount; i++)
   }
   Serial.println();
 
+  //delay(2000);
+
 }
 
 void loop()
 {
 
-  //statesEvolution();
-  //statesExits();
+  statesEvolution();
+  statesExits();
 
   //followLine();
+
+  calcCrosses();
 
 
   //PID_control();
@@ -97,33 +104,21 @@ void loop()
   // Imprimir os valores dos sensores para depuração
 
   uint16_t position = qtr.readLineBlack(sensorValues);
+  //qtr.read(sensorValues);
+
+  //readSensors();
   
-  // for (uint8_t i = 0; i < SensorCount; i++) 
-  // {
-  //   Serial.print(sensorValues[i]);
-  //   Serial.print('\t');
-  // }
-  // Serial.println();
-  //Serial.println(position);
-
-  Serial.print(sensorValues[0]);
+  for (uint8_t i = 0; i < SensorCount; i++) 
+  {
+    Serial.print(sensorValues[i]);
+    Serial.print('\t');
+  }
+  //Serial.println();
+  Serial.print(position);
   Serial.print('\t');
-  Serial.print(sensorValues[1]);
-  Serial.print('\t');
-  Serial.print(sensorValues[2]);
-  Serial.print('\t');
-  Serial.print(sensorValues[3]);
-  Serial.print('\t');
-  Serial.print(sensorValues[4]);
-  Serial.println('\t');
 
-
-  //Serial.print("State: ");
-  //Serial.println(state);
-
-  // Serial.print("Motorspeed do pid: ");
-  // Serial.println(motorspeed);
-
+  Serial.print("Crosses: ");
+  Serial.println(crosses);
 
 }
 
@@ -135,7 +130,7 @@ void followLine(){
   uint16_t position = qtr.readLineBlack(sensorValues);
   float error = 1400 - position;
   //float error = (-1.5 * sensorValues[0] -1.2 * sensorValues[1] + 1 * sensorValues[3] + 1 * sensorValues[4]);
-
+  //float error = (-1 * sensorValues[1] + 1 * sensorValues[2]);
   //Serial.print("Sum: ");
   //Serial.println(sum);
 
@@ -177,24 +172,46 @@ void setRobotVW(float V, float W){
 
 }
 
-void calcCrosses(){
-  int sum = sensorValues[0] + sensorValues[1] + sensorValues[2] + sensorValues[3] + sensorValues[4];
+void readSensors(){
+  qtr.read(sensorValues);
 
-  //if(sum > )
+  sensorValues[0] = map(sensorValues[0], 600, 1200, 0, 1000);
+  sensorValues[1] = map(sensorValues[1], 800, 4095, 0, 1000);
+  sensorValues[2] = map(sensorValues[2], 190, 4095, 0, 1000);
+  sensorValues[3] = map(sensorValues[3], 177, 4095, 0, 1000);
+
+  constrain(sensorValues[0], 0, 1000);
+  constrain(sensorValues[1], 0, 1000);
+  constrain(sensorValues[2], 0, 1000);
+  constrain(sensorValues[3], 0, 1000);
+
+}
+
+void calcCrosses(){
+  //sensorValues[0] = map(sensorValues[0], 0, 4, 0, 1000);
+
+  //int sum = sensorValues[0] + sensorValues[1];
+  if(sensorValues[0] + sensorValues[1] > 1500) crosses++;
+  else if(sensorValues[2] + sensorValues[3] > 1500) crosses++;
+  else crosses = 0;
 
 }
 
 void statesEvolution(){
   tis = millis() - tes; //resetar tis
 
-  if(state == 0 && tis > 4000){
+  if(state == 0 && tis > 2000){
     setState(1);
 
-  }else if(state == 1 && tis > 4000){
-    setState(2);
-
-  }else if(state == 2 && tis > 4000){
+  }else if(state == 1 && crosses > 0){
     setState(0);
+
+  }else if(state == 2 && tis > 2000){
+    setState(0);
+
+  }else if(state == 99){
+
+
   }
 
 }
@@ -204,10 +221,13 @@ void statesExits(){
     setRobotVW(0, 0);
   
   }else if(state == 1){
-    setRobotVW(0, 5);
+    followLine();
 
   }else if(state == 2){
     setRobotVW(0, -5);
+
+  }else if(state == 99){
+    followLine();
 
   }
 

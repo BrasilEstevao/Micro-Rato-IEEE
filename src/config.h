@@ -12,12 +12,12 @@
 
 //Line sensor
 
-#define IR 2
-#define S1 4
-#define S2 35
-#define S3 34
-#define S4 36
-#define S5 39
+#define IR 15
+#define S1 2 //2
+#define S2 4 //4
+#define S3 35
+#define S4 39
+#define S5 34
 
 // Encoders
 #define ENCODER_A_PIN 12
