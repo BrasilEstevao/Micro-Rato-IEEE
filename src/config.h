@@ -29,6 +29,7 @@ typedef enum{
     turnLeft,  //3
     turnBack,  //4
     buffer,    //5
-    decision   //6
+    rev,       //6
+    decision   //7
 
 }estados;

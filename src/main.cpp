@@ -195,8 +195,8 @@ void robot_forward(){
 }
 
 void setRobotVW(float V, float W){
-  int leftDuty = map(V - W, 0, 10, 0, 255);
-  int rightDuty = map(V + W, 0, 10, 0, 255);
+  int leftDuty = map(V - W, 0, 100, 0, 255);
+  int rightDuty = map(V + W, 0, 100, 0, 255);
 
   left_motor.drive(leftDuty);
   right_motor.drive(rightDuty);
@@ -249,13 +249,16 @@ void statesEvolution(){
   tis = millis() - tes; //resetar tis
 
   if(state == start && tis > 2000){
-    setState(1);
+    setState(follow);
 
   }else if(state == follow && crosses > 0){
-    setState(buffer);
+    setState(decision);
 
   }else if(state == buffer && tis > 50){
-    // setState(decision);
+    setState(rev);
+
+  }else if(state == rev && tis > 30)
+  {
     setState(decision);
 
   }else if(state == decision && decisionFlag == 'L'){
@@ -285,10 +288,10 @@ void statesEvolution(){
   }else if(state == turnBack && tis > 500){
     setState(follow);
     
-  }else if(state == turnRight && tis > 200){
+  }else if(state == turnRight && tis > 450){
     setState(follow);
     
-  }else if(state == turnLeft && tis > 200){
+  }else if(state == turnLeft && tis > 450){
     setState(follow);
     
   }else if(state == 99){
@@ -306,19 +309,23 @@ void statesExits(){
     followLine();
 
   }else if(state == buffer){
-    setRobotVW(2, 0);
+    setRobotVW(20, 0);
 
-  }else if(state == decision){
+  }else if(state == rev){
+    setRobotVW(-20,0);
+
+  }
+  else if(state == decision){
     decideNextInstruction();
 
   }else if(state == turnLeft){
-    setRobotVW(0, 2);
+    setRobotVW(0, 20);
 
   }else if(state == turnRight){
-    setRobotVW(0, -2);
+    setRobotVW(0, -20);
 
   }else if(state == turnBack){
-    setRobotVW(0, 5);
+    setRobotVW(0, 25);
 
   }else if(state == 99){
     setRobotVW(0, 0);
