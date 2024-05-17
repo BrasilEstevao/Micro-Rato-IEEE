@@ -3,6 +3,7 @@
 #include "SparkFun_TB6612.h"
 #include <QTRSensors.h>
 #include "ezButton.h"
+#include <map>
 
 volatile long right_pulseCounter = 0;
 volatile long left_pulseCounter = 0;
@@ -34,6 +35,13 @@ const uint8_t leftBaseSpeed = 60;
 
 Motor right_motor(IN_1A, IN_2A, PWM_A, offsetA, 18);
 Motor left_motor(IN_1B, IN_2B, PWM_B, offsetB, 18);
+
+std::map<char, estados> directionMap = {
+    {'L', estados::turnLeft},
+    {'R', estados::turnRight},
+    {'F', estados::follow},
+    {'T', estados::turnBack}
+};
 
 //=========================================
 //Function Headers
@@ -261,30 +269,12 @@ void statesEvolution(){
   {
     setState(decision);
 
-  }else if(state == decision && decisionFlag == 'L'){
-    setState(turnLeft);
+  }else if(state == decision && decisionFlag != 'N'){ // Ideally we check if decisionFlag is range "LRFT"
+    setState(directionMap.at(decisionFlag));
     //setState(99);
     lastLeftSensors = 0;
     lastRightSensors = 0;
-
-  }else if(state == decision && decisionFlag == 'R'){
-    setState(turnRight);
-    //setState(99);
-    lastLeftSensors = 0;
-    lastRightSensors = 0;
-
-  }else if(state == decision && decisionFlag == 'F'){
-    setState(follow);
-    //setState(99);
-    lastLeftSensors = 0;
-    lastRightSensors = 0;
-    
-  }else if(state == decision && decisionFlag == 'T'){
-    setState(turnBack);
-    //setState(99);
-    lastLeftSensors = 0;
-    lastRightSensors = 0;
-    
+  
   }else if(state == turnBack && tis > 500){
     setState(follow);
     
