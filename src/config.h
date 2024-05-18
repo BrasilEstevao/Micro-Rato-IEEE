@@ -22,14 +22,15 @@
 // Encoders
 #define ENCODER_A_PIN 12
 
-typedef enum{
-    start,     //0
-    follow,     //1
-    turnRight, //2
-    turnLeft,  //3
-    turnBack,  //4
-    buffer,    //5
-    rev,       //6
-    decision   //7
-
-}estados;
+typedef enum States {
+    start,
+    follow,
+    turn_right,
+    turn_left,
+    turn_back,
+    small_forward_1,
+    small_forward_2,
+    decision,
+    rev,
+    end
+} States;
