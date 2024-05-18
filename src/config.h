@@ -30,7 +30,7 @@ typedef enum States {
     turn_back,
     small_forward_1,
     small_forward_2,
-    decision,
-    rev,
+    rev_left,
+    rev_right,
     end
 } States;
